@@ -1,0 +1,18 @@
+abcd_code,statement,label,short name,group
+bpm_1_y_bin,I act too young for my age,A1,behavioral immaturity,Attention
+bpm_2_y_bin,I argue a lot,E1,argumentativeness,Externalizing
+bpm_3_y_bin,I fail to finish things I start,A2,poor task completion,Attention
+bpm_4_14_y_bin,I have trouble concentrating or paying attention/I am inattentive or easily distracted,A3,inattention,Attention
+bpm_5_y_bin,I have trouble sitting still,A4,hyperactivity,Attention
+bpm_6_y_bin,I destroy things belonging to others,E2,destructiveness,Externalizing
+bpm_7_8_y_bin,I disobey my parents/I disobey at school,E3,disobedience,Externalizing
+bpm_9_y_bin,I feel worthless or inferior (less good),I1,worthlessness,Internalizing
+bpm_10_y_bin,I act without stopping to think,A5,impulsivity,Attention
+bpm_11_y_bin,I am too fearful or anxious,I2,fear,Internalizing
+bpm_12_y_bin,I feel too guilty,I3,guilt,Internalizing
+bpm_13_y_bin,Êam self-conscious or easily embarrassed,I4,social anxiety,Internalizing
+bpm_15_y_bin,I am stubborn,E4,stubbornness,Externalizing
+bpm_16_y_bin,I have a hot temper,E5,irritability,Externalizing
+bpm_17_y_bin,I threaten to hurt people,E6,threats of violence,Externalizing
+bpm_18_y_bin,"I am unhappy, sad, or depressed",I5,depressed mood,Internalizing
+bpm_19_y_bin,I worry a lot,I6,worry,Internalizing

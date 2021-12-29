@@ -1,0 +1,4 @@
+"0","centralityPlot(y3_boot_central$sample, labels = labs$lab_short, decreasing = F, scale = ""z-scores"")
+"
+"2","Note: z-scores are shown on x-axis rather than raw centrality indices.
+"

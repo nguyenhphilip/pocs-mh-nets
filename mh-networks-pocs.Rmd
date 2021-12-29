@@ -1,0 +1,203 @@
+---
+title: "Mental Health Networks Project"
+author: "Philip Nguyen"
+date: "12/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(bootnet)
+library(tidyverse)
+library(vroom)
+library(qgraph)
+library(patchwork)
+```
+
+
+```{r}
+# Youth report of functioning
+bpm_y <- vroom::vroom("../ABCD4p0/1195092/abcd_bpm01.txt") %>%
+  # remove description
+  slice(-1)  %>%
+  # remove unnecessary columns
+  dplyr::select(-ends_with("_id"),
+         -"interview_date",
+         -"collection_title",
+         -"bpm_admin",
+         -"study_cohort_name") %>%
+  mutate(across(bpm_1_y:bpm_19_y, ~ as.numeric(.x))) %>%
+  mutate(bpm_4_14_y = bpm_4_y + bpm_14_y,
+         bpm_7_8_y = bpm_7_y + bpm_8_y) %>%
+  dplyr::select(-c(bpm_4_y, bpm_14_y, bpm_7_y, bpm_8_y)) %>%
+  mutate(across(bpm_1_y:bpm_7_8_y, ~ if_else(.x == 0, 0, 1), .names = "{.col}_bin"))
+
+bpm_y %>%
+  group_by(eventname) %>%
+  count()
+```
+
+
+```{r}
+
+y3 <- bpm_y %>%
+  filter(eventname == "3_year_follow_up_y_arm_1") %>%
+  drop_na()
+
+m6 <- bpm_y %>%
+  filter(eventname == "6_month_follow_up_arm_1") %>%
+  drop_na()
+
+y1 <- bpm_y %>%
+  filter(eventname == "1_year_follow_up_y_arm_1") %>%
+  drop_na()
+
+m18 <- bpm_y %>%
+  filter(eventname == "18_month_follow_up_arm_1") %>%
+  drop_na()
+
+y2 <- bpm_y %>%
+  filter(eventname == "2_year_follow_up_y_arm_1") %>%
+  drop_na()
+
+m30 <- bpm_y %>%
+  filter(eventname == "30_month_follow_up_arm_1") %>%
+  drop_na()
+
+rbind(m6, y3, y1, m18, y2, m30) %>%
+  mutate(interview_age = as.numeric(interview_age)) %>%
+  group_by(eventname, sex) %>%
+  summarize(n = n()) %>%
+  mutate(perc = n/sum(n))
+  
+
+labels <- read_csv("cbcl_labels.csv")
+
+net_filter <- function(data){
+  d <- data %>%
+  dplyr::select(labels$abcd_code) %>%
+    data.table::setnames(old = labels$abcd_code, new = labels$label)
+  d
+}
+
+m6bin <- net_filter(m6)
+y1bin <- net_filter(y1)
+m18bin <- net_filter(m18)
+y2bin <- net_filter(y2)
+m30bin <- net_filter(m30)
+y3bin <- net_filter(y3)
+```
+
+```{r}
+set.seed(343)
+# Estimate network using Ising Model with regularized nodewise logistic regression and EBIC (Estimated Bayesian Information Criteria) model selection.
+y3net <- estimateNetwork(y3bin, default = "IsingFit")
+
+# pre-threshold nets
+
+#nets <- list(m6net, y1net, m18net, y2net, m30net, y3net)
+#save(nets, file="estimated-ising-nets.RData")
+```
+
+```{r}
+y3bootnet <- bootnet(y3net, nBoots=500, nCores = 4)
+save(y3bootnet, file="y3-bootstrapped-edges.RData")
+# Perform non-parametric bootstrap to test stability of estimates
+
+# plot the edge stability of the network
+boot_edges_y3 <- plot(y3bootnet, order = "sample", label = FALSE, meanColor = "green", bootColor = "blue", panels = F)
+
+ggsave("boot_edges_y3.png", plot = boot_edges_y3)
+
+# test for significant differences between edge weights
+# differenceTest(boots[[2]], "strength")
+
+# remove edges with p-values > 0.01
+y3_thresh_nets <- bootThreshold(y3bootnet, alpha = 0.01)
+# thresheld_nets <- lapply(boots, bootThreshold, alpha=0.01)
+save(y3_thresh_nets, file="y3-thresholded-nets.RData")
+
+# plot significant differences between edges of bootstrapped samples (if 0 is in CI we know that the difference is not sig diff)
+# plot(thresheld_nets,
+#      plot = "difference",
+#      onlyNonZero = TRUE,
+#      order = "sample")
+
+labels
+
+```
+
+
+```{r}
+# case-drop bootstrap for correlation stability coefficients to determine stability of rank-order of centrality indices
+y3_boot_central <- bootnet(y3net, nBoots = 500, nCores = 4,  type = "case", statistics = c("strength"))
+# boot_central <- lapply(nets, bootnet, nBoots = 250, nCores = 4, type = "case", statistics = c("strength", "betweenness", "closeness"))
+save(y3_boot_central, file="y3_bootstrapped-centrality.RData")
+
+corStability(y3_boot_central, statistics = "strength")
+
+# casedrop_centrality_p1 <- plot(boot_central[[1]], statistics = c("strength", "betweenness", "closeness"))
+# casedrop_centrality_p2 <- plot(boot_central[[2]], statistics = c("strength", "betweenness", "closeness"))
+# casedrop_centrality_p3 <- plot(boot_central[[3]], statistics = c("strength", "betweenness", "closeness"))
+# casedrop_centrality_p4 <- plot(boot_central[[4]], statistics = c("strength", "betweenness", "closeness"))
+# casedrop_centrality_p5 <- plot(boot_central[[5]], statistics = c("strength", "betweenness", "closeness"))
+casedrop_centrality_y3 <- plot(y3_boot_central, statistics = c("strength"))
+ggsave("y3_casedrop_boot_centrality.png", plot = casedrop_centrality_y3)
+
+labs <- labels %>%
+  mutate(lab_short = paste0(label,": ", `short name`))
+
+centrality_ploty3 <- centralityPlot(y3_boot_central$sample, labels = labs$lab_short, decreasing = F, scale = "z-scores")
+ggsave("centrality_plot_y3.png", centrality_ploty3)
+```
+
+
+```{r}
+y3_plot <- plot(y3_thresh_nets,
+     layout=L, 
+     theme = "colorblind", 
+     groups = labels$group, 
+     nodeNames = labels$`short name`, 
+     legend.cex = 0.4,
+     filetype = "png",
+     filename = "y3-thresholded-net")
+
+```
+
+
+```{r}
+# Network comparison - smaller sample sizes will result in sparser estimated networks
+# correlate the weight matrices
+# perform network comparison test - it's a permutation test that compares networks on 3 aspects
+## investigates
+## - network structure invariance (null = structure is identical)
+## - global strength is invariant - overall level of connectivity is identical
+## Estimated 
+
+data.frame(x = rgamma(100000, shape = 1e5, rate = 1e-5)) %>%
+  ggplot(aes(x = x)) +
+  geom_histogram()
+
+
+data.frame(x = rgamma(100000, shape = 1, scale = 1)) %>%
+  ggplot(aes(x = x)) +
+  geom_histogram()
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,11 @@
+"0","y3_plot <- plot(y3_thresh_nets,
+     layout=L, 
+     theme = ""colorblind"", 
+     groups = labels$group, 
+     nodeNames = labels$`short name`, 
+     legend.cex = 0.4,
+     filetype = ""png"",
+     filename = ""y3-thresholded-net"")
+"
+"2","Output stored in /Users/phil/Desktop/ABCD/mh-networks/y3-thresholded-net.png
+"

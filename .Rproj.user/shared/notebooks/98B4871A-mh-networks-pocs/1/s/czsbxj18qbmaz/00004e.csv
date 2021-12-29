@@ -1,0 +1,6 @@
+"0","data.frame(x = rgamma(100000, shape = 1e5, rate = 1e-5)) %>%
+  ggplot(aes(x = x)) +
+  geom_histogram()
+"
+"2","`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+"
